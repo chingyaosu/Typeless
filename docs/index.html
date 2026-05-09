@@ -159,6 +159,21 @@
       <strong>開機自啟</strong>
       <p>LaunchAgent 在背景跑，不用每次手動開。</p>
     </div>
+    <div class="feature">
+      <div class="icon">📺</div>
+      <strong>浮動狀態視窗</strong>
+      <p>螢幕上方顯示 Recording / Analyzing / 結果文字，永遠浮在最上層、點擊穿透。</p>
+    </div>
+    <div class="feature">
+      <div class="icon">🔇</div>
+      <strong>幻覺過濾</strong>
+      <p>音量 RMS 偵測 + 黑名單，避開 Whisper 把靜音猜成「謝謝觀看」之類的訓練資料噪音。</p>
+    </div>
+    <div class="feature">
+      <div class="icon">📤</div>
+      <strong>送出指令</strong>
+      <p>「送出」「傳送」「send」直接按 Enter，不用切回鍵盤。</p>
+    </div>
   </div>
 </section>
 
@@ -184,10 +199,11 @@ pbcopy → Cmd+V → 貼入當前視窗</code></pre>
   <table>
     <tr><th>檔案</th><th>角色</th></tr>
     <tr><td><code>main.py</code></td><td>主程式 / menu bar</td></tr>
-    <tr><td><code>hotkey.py</code></td><td>CGEventTap 全域熱鍵</td></tr>
-    <tr><td><code>recorder.py</code></td><td>音訊錄製（持續開啟 stream）</td></tr>
-    <tr><td><code>api.py</code></td><td>Groq API 呼叫</td></tr>
+    <tr><td><code>hotkey.py</code></td><td>CGEventTap 全域熱鍵（自動重啟被 macOS 停用的 tap）</td></tr>
+    <tr><td><code>recorder.py</code></td><td>音訊錄製（持續開啟 stream + RMS 過濾靜音）</td></tr>
+    <tr><td><code>api.py</code></td><td>Groq API 呼叫 + 指令偵測 + 幻覺過濾</td></tr>
     <tr><td><code>output.py</code></td><td>剪貼板貼上 + 鍵盤指令</td></tr>
+    <tr><td><code>status_window.py</code></td><td>浮動狀態 HUD（NSPanel）</td></tr>
   </table>
 </section>
 
@@ -221,6 +237,15 @@ echo "GROQ_API_KEY=你的_key" > ~/.typeless_env</code></pre>
 
   <h3>5. 按一陣子後 Option+Space 失效（變成插入空白）</h3>
   <p>CGEventTap 被 macOS 因為 callback 太慢而暫時停用。解法：在 callback 裡偵測 <code>kCGEventTapDisabledByTimeout</code> 並自動重啟。</p>
+
+  <h3>6. Whisper 對短音訊亂猜成韓文／日文／中國人名</h3>
+  <p>「送出」兩個字會被 Whisper 聽成 "Sączu." 或「澤東 曹 公豐」。解法：API 加 <code>language="zh"</code> 鎖定中文（仍能保留英文字）+ 中英雙語 prompt 提示常用指令。</p>
+
+  <h3>7. 安靜時 Whisper 幻覺出 YouTube 字幕</h3>
+  <p>常見幻覺：「謝謝觀看,下次見!」、「全文字幕由 Amara.org 社群提供」。原因：Whisper 訓練資料含大量 YouTube 字幕。解法：錄音時計算 RMS 音量，&lt; 200 直接丟棄不送 API。</p>
+
+  <h3>8. 浮動視窗從背景 thread 更新會 crash</h3>
+  <p>AppKit 強制 UI 必須在主執行緒。解法：用 <code>NSObject</code> 子類 + <code>performSelectorOnMainThread_</code> 把 closure 派送到主執行緒。</p>
 </section>
 
 <section>
