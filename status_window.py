@@ -131,11 +131,11 @@ class StatusWindow:
     def __init__(self, style: str = "capsule"):
         self.style = style
         if style == "bubble":
-            self.W, self.H = 360, 200
+            self.W, self.H = 360, 220  # +20 for quota footer
         elif style == "card":
-            self.W, self.H = 240, 180
+            self.W, self.H = 240, 200
         else:  # capsule
-            self.W, self.H = 360, 70
+            self.W, self.H = 360, 90
 
         screen = NSScreen.mainScreen().frame()
         x = (screen.size.width - self.W) / 2
@@ -163,10 +163,16 @@ class StatusWindow:
                 NSMakeRect(0, 0, self.W, self.H))
             self.panel.setContentView_(view)
             self.label = self._mk_label(
-                NSMakeRect(20, 14, self.W - 40, 28),
+                NSMakeRect(20, 34, self.W - 40, 28),
                 NSFont.boldSystemFontOfSize_(15), NSColor.blackColor()
             )
             view.addSubview_(self.label)
+            self.quota = self._mk_label(
+                NSMakeRect(10, 6, self.W - 20, 18),
+                NSFont.systemFontOfSize_(11),
+                NSColor.colorWithCalibratedRed_green_blue_alpha_(0.35, 0.35, 0.35, 1.0),
+            )
+            view.addSubview_(self.quota)
 
         elif self.style == "card":
             view = _CardView.alloc().initWithFrame_(
@@ -174,17 +180,23 @@ class StatusWindow:
             self.panel.setContentView_(view)
 
             emoji = self._mk_label(
-                NSMakeRect(0, 60, self.W, 90),
+                NSMakeRect(0, 80, self.W, 90),
                 NSFont.systemFontOfSize_(80), NSColor.blackColor()
             )
             emoji.setStringValue_("🐼")
             view.addSubview_(emoji)
 
             self.label = self._mk_label(
-                NSMakeRect(16, 18, self.W - 32, 30),
+                NSMakeRect(16, 38, self.W - 32, 30),
                 NSFont.boldSystemFontOfSize_(15), NSColor.blackColor()
             )
             view.addSubview_(self.label)
+            self.quota = self._mk_label(
+                NSMakeRect(10, 10, self.W - 20, 18),
+                NSFont.systemFontOfSize_(11),
+                NSColor.colorWithCalibratedRed_green_blue_alpha_(0.35, 0.35, 0.35, 1.0),
+            )
+            view.addSubview_(self.quota)
 
         else:  # capsule
             view = _CapsuleView.alloc().initWithFrame_(
@@ -192,7 +204,7 @@ class StatusWindow:
             self.panel.setContentView_(view)
 
             emoji = self._mk_label(
-                NSMakeRect(14, 12, 50, 46),
+                NSMakeRect(14, 30, 50, 46),
                 NSFont.systemFontOfSize_(38), NSColor.blackColor()
             )
             emoji.setStringValue_("🐼")
@@ -200,11 +212,18 @@ class StatusWindow:
             view.addSubview_(emoji)
 
             self.label = self._mk_label(
-                NSMakeRect(70, 20, self.W - 90, 30),
+                NSMakeRect(70, 38, self.W - 90, 30),
                 NSFont.boldSystemFontOfSize_(16), NSColor.blackColor()
             )
             self.label.setAlignment_(NSTextAlignmentLeft)
             view.addSubview_(self.label)
+            self.quota = self._mk_label(
+                NSMakeRect(20, 8, self.W - 40, 18),
+                NSFont.systemFontOfSize_(11),
+                NSColor.colorWithCalibratedRed_green_blue_alpha_(0.3, 0.35, 0.25, 1.0),
+            )
+            self.quota.setAlignment_(NSTextAlignmentLeft)
+            view.addSubview_(self.quota)
 
     def _mk_label(self, frame, font, color):
         f = NSTextField.alloc().initWithFrame_(frame)
@@ -216,6 +235,12 @@ class StatusWindow:
         f.setTextColor_(color)
         f.setFont_(font)
         return f
+
+    def update_quota(self, label: str):
+        def fn():
+            if hasattr(self, "quota"):
+                self.quota.setStringValue_(label)
+        _on_main(fn)
 
     def _set(self, text: str, color=None, font_size: int = None):
         def fn():

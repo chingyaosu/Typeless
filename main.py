@@ -21,6 +21,7 @@ if os.path.exists(_env_file):
 import rumps
 from AppKit import NSWorkspace
 
+import api
 from api import detect_command, is_hallucination, polish, transcribe
 from hotkey import HotkeyListener
 from output import execute_command, paste_text
@@ -134,6 +135,7 @@ class TypelessApp(rumps.App):
             self.title = ICON_PROCESSING
             self._status.show_analyzing()
             raw = transcribe(audio)
+            self._status.update_quota(api.quota_label())
             print(f"[Typeless] raw: {raw!r}", flush=True)
             if not raw:
                 self._status.hide()
@@ -153,6 +155,7 @@ class TypelessApp(rumps.App):
                 return
 
             polished = polish(raw, app_name=self._active_app)
+            self._status.update_quota(api.quota_label())
             paste_text(polished)
             self._status.show_text(polished)
 
