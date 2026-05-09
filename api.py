@@ -29,8 +29,26 @@ def _update_quota(headers):
         pass
 
 
+def _shorten_reset(s: str) -> str:
+    """'2m59.56s' -> '2m59s', '23h12m45.1s' -> '23h12m'."""
+    if not s:
+        return ""
+    import re
+    m = re.match(r"(?:(\d+)h)?(?:(\d+)m)?(?:([\d.]+)s)?", s)
+    if not m:
+        return s
+    h, mi, sec = m.group(1), m.group(2), m.group(3)
+    if h:
+        return f"{h}h{mi or 0}m"
+    if mi:
+        return f"{mi}m{int(float(sec or 0))}s"
+    if sec:
+        return f"{int(float(sec))}s"
+    return s
+
+
 def quota_label() -> str:
-    """Format quota for display, e.g. '🎫 87.2k tok · 950 req'."""
+    """Format quota for display, e.g. '🎫 87.2k tok · 重置 2m59s'."""
     rt = QUOTA.get("remaining_tokens")
     rr = QUOTA.get("remaining_requests")
     if rt is None and rr is None:
@@ -44,6 +62,9 @@ def quota_label() -> str:
             parts.append(f"{rt} tok")
     if rr is not None:
         parts.append(f"{rr} req")
+    reset = _shorten_reset(QUOTA.get("reset_tokens") or "")
+    if reset:
+        parts.append(f"重置 {reset}")
     return "🎫 " + " · ".join(parts)
 
 # App name → tone instruction
