@@ -43,17 +43,48 @@ VOICE_COMMANDS: list[tuple[set[str], str]] = [
     ({"重新說", "重來", "刪掉", "刪除", "再說一次", "undo"}, "undo"),
     ({"全選", "select all"}, "select_all"),
     ({"換行", "new line", "newline"}, "newline"),
+    ({"送出", "傳送", "發送", "送", "send"}, "send"),
     ({"複製", "copy"}, "copy"),
     ({"剪下", "cut"}, "cut"),
 ]
 
 
 def detect_command(text: str) -> str | None:
-    normalized = text.strip().lower().rstrip("。，.!！")
+    normalized = text.strip().lower().rstrip("。，.!！?？ ")
+    # Exact match first
     for phrases, command in VOICE_COMMANDS:
         if normalized in phrases:
             return command
+    # Fuzzy match: only treat as command if the whole utterance is short (<10 chars)
+    # to avoid misfiring on long sentences containing the command word.
+    if len(normalized) <= 10:
+        for phrases, command in VOICE_COMMANDS:
+            for p in phrases:
+                if p in normalized:
+                    return command
     return None
+
+
+# Common Whisper hallucinations on silent/short audio (YouTube subtitle training artifacts)
+HALLUCINATIONS = {
+    "thank you", "thanks for watching", "thank you for watching",
+    "謝謝觀看", "謝謝觀看,下次見", "謝謝觀看,下次見!",
+    "下次見", "感謝您的觀看", "感謝觀看",
+    "全文字幕由 amara.org 社群提供",
+    "字幕由 amara.org 社群提供",
+    "字幕製作", "字幕製作:",
+    "中文字幕", "繁體字幕",
+    "請訂閱我的頻道", "請按讚訂閱",
+    "ご視聴ありがとうございました",
+    "you", ".", "。", "?", "？", "!", "！",
+}
+
+
+def is_hallucination(text: str) -> bool:
+    t = text.strip().lower().rstrip("。，.!！?？ ")
+    return t in HALLUCINATIONS or any(h in t for h in [
+        "amara.org", "字幕由", "字幕製作", "subscribe to my channel",
+    ])
 
 
 def transcribe(audio_bytes: bytes) -> str:
@@ -63,6 +94,12 @@ def transcribe(audio_bytes: bytes) -> str:
         model="whisper-large-v3",
         file=audio_file,
         response_format="text",
+        language="zh",  # zh mode preserves English words; avoids Korean/Japanese/Swedish misfires
+        prompt=(
+            "這是一段中英混合 (Chinese and English mixed) 的語音輸入。"
+            "常用指令：送出、傳送、重新說、全選、換行、複製、剪下。"
+            "Common English: send, undo, copy, paste, new line."
+        ),
     )
     return result.strip()
 

@@ -21,7 +21,7 @@ if os.path.exists(_env_file):
 import rumps
 from AppKit import NSWorkspace
 
-from api import detect_command, polish, transcribe
+from api import detect_command, is_hallucination, polish, transcribe
 from hotkey import HotkeyListener
 from output import execute_command, paste_text
 from recorder import AudioRecorder
@@ -128,10 +128,16 @@ class TypelessApp(rumps.App):
 
             self.title = ICON_PROCESSING
             raw = transcribe(audio)
+            print(f"[Typeless] raw: {raw!r}", flush=True)
             if not raw:
                 return
 
+            if is_hallucination(raw):
+                print(f"[Typeless] dropped (hallucination)", flush=True)
+                return
+
             command = detect_command(raw)
+            print(f"[Typeless] command: {command}", flush=True)
             if command:
                 play(SOUND_CMD)
                 execute_command(command)

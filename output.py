@@ -28,6 +28,8 @@ def execute_command(command: str):
         _keystroke(X_KEY, Quartz.kCGEventFlagMaskCommand)
     elif command == "newline":
         _keystroke(RETURN_KEY, 0)
+    elif command == "send":
+        _keystroke(RETURN_KEY, 0)
 
 
 def _keystroke(keycode: int, flags: int):
