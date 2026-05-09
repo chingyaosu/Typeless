@@ -257,20 +257,49 @@ cat /tmp/typeless.log
 
 如果文字成功貼入 → ✅ 安裝完成！
 
-### 關於浮動狀態視窗
+### 關於浮動狀態視窗（熊貓造型）
 
-從 v1.1 開始，Typeless 內建螢幕上方的浮動狀態視窗（`status_window.py`），會顯示：
-- 🔴 Recording… — 錄音中
-- ⏳ Analyzing… — 上傳轉錄與 AI 潤飾中
-- 〈結果文字〉— 完成後綠字顯示 2.5 秒
+從 v1.2 開始，Typeless 內建熊貓造型的浮動狀態視窗（`status_window.py`），會顯示：
+- ● **Recording** — 錄音中（紅色，22pt 粗體）
+- **Analyzing…** — 上傳轉錄與 AI 潤飾中（深黃 / 琥珀色，20pt 粗體）
+- 〈結果文字〉— 完成後黑字顯示 2.5 秒
 - ⌘ 〈指令名〉— 觸發語音指令（如 send / undo）時顯示
 
-視窗特性：
-- 永遠浮在所有視窗之上
-- 點擊穿透（不會擋住操作）
+#### 三種風格可選
+
+| 風格 | 樣子 |
+|------|------|
+| `capsule`（預設）| 橫向膠囊：🐼 emoji + 文字並排，竹葉綠底 |
+| `card` | 直立卡片：超大 🐼 emoji 在上、狀態文字在下 |
+| `bubble` | 手繪熊貓臉：黑耳朵、白臉、黑眼罩、黑鼻子，文字在「嘴巴」位置 |
+
+**切換風格**：在 LaunchAgent plist 的 `EnvironmentVariables` 加上 `PANDA_STYLE`：
+
+```xml
+<key>EnvironmentVariables</key>
+<dict>
+    <key>PANDA_STYLE</key>
+    <string>bubble</string>   <!-- 或 capsule / card -->
+    ...
+</dict>
+```
+
+修改後重啟：
+```bash
+launchctl unload ~/Library/LaunchAgents/com.typeless.app.plist
+launchctl load ~/Library/LaunchAgents/com.typeless.app.plist
+```
+
+#### 視窗特性
+- 永遠浮在所有視窗之上（`NSFloatingWindowLevel`）
+- 點擊穿透（`setIgnoresMouseEvents_(True)`），不會擋住操作
 - 不搶焦點
 
-實作細節（給除錯用）：用 PyObjC 的 `NSPanel` + `setIgnoresMouseEvents_(True)` + `NSFloatingWindowLevel`。所有 UI 更新透過 `performSelectorOnMainThread_` 從背景 thread 安全派送到主執行緒（AppKit 強制要求）。
+#### 實作細節（給除錯用）
+- 用 PyObjC 的 `NSPanel` + 自訂 `NSView` 子類
+- bubble 風格用 `NSBezierPath` 直接繪製（耳朵、臉、眼罩、眼睛、瞳孔、鼻子）
+- 所有 UI 更新透過 `NSObject.performSelectorOnMainThread_` 從背景 thread 安全派送到主執行緒（AppKit 強制要求）
+- bubble 風格的耳朵/臉位置可在 `_PandaFaceView.drawRect_` 內調整
 
 如果浮動視窗沒出現，常見原因：
 - `pyobjc-framework-Cocoa` 版本太舊（需要 ≥ 10.0）

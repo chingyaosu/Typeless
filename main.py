@@ -94,7 +94,8 @@ class TypelessApp(rumps.App):
         self.menu = ["Option+Space: push-to-talk", None]
 
         self._recorder = AudioRecorder()
-        self._status = StatusWindow()
+        # Pick one: "capsule" (minimal pill) | "card" (big emoji) | "bubble" (illustrated face)
+        self._status = StatusWindow(style=os.environ.get("PANDA_STYLE", "capsule"))
         self._busy = False
         self._active_app = ""
 
