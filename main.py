@@ -25,6 +25,7 @@ from api import detect_command, is_hallucination, polish, transcribe
 from hotkey import HotkeyListener
 from output import execute_command, paste_text
 from recorder import AudioRecorder
+from status_window import StatusWindow
 
 ICON_IDLE = "⌨️"
 ICON_RECORDING = "🔴"
@@ -93,6 +94,7 @@ class TypelessApp(rumps.App):
         self.menu = ["Option+Space: push-to-talk", None]
 
         self._recorder = AudioRecorder()
+        self._status = StatusWindow()
         self._busy = False
         self._active_app = ""
 
@@ -110,6 +112,7 @@ class TypelessApp(rumps.App):
         try:
             self._active_app = get_active_app()
             self.title = ICON_RECORDING
+            self._status.show_recording()
             self._recorder.start()
         except Exception as e:
             print(f"[Typeless] start error: {e}")
@@ -124,16 +127,20 @@ class TypelessApp(rumps.App):
             play(SOUND_DONE)
 
             if not audio:
+                self._status.hide()
                 return
 
             self.title = ICON_PROCESSING
+            self._status.show_analyzing()
             raw = transcribe(audio)
             print(f"[Typeless] raw: {raw!r}", flush=True)
             if not raw:
+                self._status.hide()
                 return
 
             if is_hallucination(raw):
                 print(f"[Typeless] dropped (hallucination)", flush=True)
+                self._status.hide()
                 return
 
             command = detect_command(raw)
@@ -141,13 +148,16 @@ class TypelessApp(rumps.App):
             if command:
                 play(SOUND_CMD)
                 execute_command(command)
+                self._status.show_text(f"⌘ {command}")
                 return
 
             polished = polish(raw, app_name=self._active_app)
             paste_text(polished)
+            self._status.show_text(polished)
 
         except Exception as e:
             print(f"[Typeless] Error: {e}")
+            self._status.hide()
         finally:
             self.title = ICON_IDLE
             self._busy = False

@@ -250,11 +250,31 @@ cat /tmp/typeless.log
 
 請使用者：
 1. 點任何文字輸入框（這個對話框、Notes、Slack 都行）
-2. 按住 Option+Space → 聽到 Tink 聲 → 圖示變 🔴
+2. 按住 Option+Space → 聽到 Tink 聲 → 圖示變 🔴 → **螢幕上方出現浮動視窗「🔴 Recording…」**
 3. 說一句話：「測試一下這個 voice input 中英混合的辨識」
-4. 放開 → 聽到 Pop 聲 → 1~2 秒後文字自動貼入
+4. 放開 → 聽到 Pop 聲 → **浮動視窗變「⏳ Analyzing…」**
+5. 1~2 秒後文字自動貼入 → **浮動視窗顯示貼上的文字（綠色，2.5 秒後消失）**
 
 如果文字成功貼入 → ✅ 安裝完成！
+
+### 關於浮動狀態視窗
+
+從 v1.1 開始，Typeless 內建螢幕上方的浮動狀態視窗（`status_window.py`），會顯示：
+- 🔴 Recording… — 錄音中
+- ⏳ Analyzing… — 上傳轉錄與 AI 潤飾中
+- 〈結果文字〉— 完成後綠字顯示 2.5 秒
+- ⌘ 〈指令名〉— 觸發語音指令（如 send / undo）時顯示
+
+視窗特性：
+- 永遠浮在所有視窗之上
+- 點擊穿透（不會擋住操作）
+- 不搶焦點
+
+實作細節（給除錯用）：用 PyObjC 的 `NSPanel` + `setIgnoresMouseEvents_(True)` + `NSFloatingWindowLevel`。所有 UI 更新透過 `performSelectorOnMainThread_` 從背景 thread 安全派送到主執行緒（AppKit 強制要求）。
+
+如果浮動視窗沒出現，常見原因：
+- `pyobjc-framework-Cocoa` 版本太舊（需要 ≥ 10.0）
+- 看 `/tmp/typeless.log` 是否有 `NSPanel` 相關錯誤
 
 ---
 
@@ -334,3 +354,11 @@ rm -rf ~/Desktop/CLAUDE/Typeless
 | 說「**複製**」/「**剪下**」 | Cmd+C / Cmd+X |
 
 App 會自動偵測當前 App 調整潤飾語氣（Slack 輕鬆 / Mail 正式 / VS Code 技術）。
+
+## 視覺回饋
+
+| 位置 | 狀態 |
+|------|------|
+| Menu bar 圖示 | ⌨️ 待機 / 🔴 錄音中 / ⏳ 處理中 |
+| 螢幕上方浮動視窗 | 🔴 Recording / ⏳ Analyzing / 〈結果文字〉 |
+| 系統音效 | Tink 開始 / Pop 結束 / Morse 觸發指令 |
