@@ -1,0 +1,6 @@
+groq
+sounddevice
+numpy
+scipy
+rumps
+pyobjc-framework-Quartz
