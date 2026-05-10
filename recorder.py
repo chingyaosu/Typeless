@@ -23,6 +23,17 @@ class AudioRecorder:
         self._lock = threading.Lock()
         self._capturing = False
         self._start_time = None
+        self._stream = None
+        self._open_stream()
+
+    def _open_stream(self):
+        # Reset Portaudio so it picks up the current default device after
+        # headphone unplug / Bluetooth switch (which is what causes -50 errors).
+        try:
+            sd._terminate()
+            sd._initialize()
+        except Exception as e:
+            print(f"[recorder] reinit warn: {e}", flush=True)
         self._stream = sd.InputStream(
             samplerate=SAMPLE_RATE,
             channels=CHANNELS,
@@ -30,7 +41,23 @@ class AudioRecorder:
             callback=self._callback,
             blocksize=1024,
         )
-        self._stream.start()  # always running
+        self._stream.start()
+        print(f"[recorder] stream opened", flush=True)
+
+    def _ensure_stream(self):
+        """Reopen the stream if it died (CoreAudio -50 after device change)."""
+        try:
+            if self._stream is None or not self._stream.active:
+                print(f"[recorder] stream inactive, reopening", flush=True)
+                try:
+                    if self._stream is not None:
+                        self._stream.close()
+                except Exception:
+                    pass
+                self._open_stream()
+        except Exception as e:
+            print(f"[recorder] ensure_stream error: {e}, reopening", flush=True)
+            self._open_stream()
 
     def _callback(self, indata, frames, time_info, status):
         if self._capturing:
@@ -38,6 +65,7 @@ class AudioRecorder:
                 self._frames.append(indata.copy())
 
     def start(self):
+        self._ensure_stream()
         with self._lock:
             self._frames = []
         self._start_time = time.time()
