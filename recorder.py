@@ -8,7 +8,7 @@ import numpy as np
 SAMPLE_RATE = 16000
 CHANNELS = 1
 MIN_DURATION = 0.4  # seconds
-MIN_RMS = 200  # int16 RMS threshold — below this is treated as silence (no speech)
+MIN_RMS = 30  # int16 RMS threshold — below this is treated as silence (no speech)
 
 
 class AudioRecorder:
